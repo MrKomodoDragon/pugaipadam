@@ -1,14 +1,20 @@
+use crate::fl;
+use cosmic::iced::advanced::image::Handle;
+use cosmic::prelude::CollectionWidget;
+use cosmic::widget::image::Image;
 use cosmic::{
-    app::{self, Core},
+    app::{self, Command, Core},
     iced::{
         alignment::{Horizontal, Vertical},
-        Command, Length,
+        Length,
     },
-    widget, Application, Element,
+    widget,
+    widget::column,
+    Application, Apply, Element,
 };
-
-use crate::fl;
-
+use std::fs::read;
+use std::mem::take;
+use std::time::{Duration, Instant};
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
 #[derive(Clone, Default)]
@@ -16,13 +22,18 @@ pub struct YourApp {
     /// This is the core of your application, it is used to communicate with the Cosmic runtime.
     /// It is used to send messages to your application, and to access the resources of the Cosmic runtime.
     core: Core,
+    current_image: usize,
+    image_list: Vec<Handle>,
 }
 
 /// This is the enum that contains all the possible variants that your application will need to transmit messages.
 /// This is used to communicate between the different parts of your application.
 /// If your application does not need to send messages, you can use an empty enum or `()`.
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    Next,
+    Previous,
+}
 
 /// Implement the `Application` trait for your application.
 /// This is where you define the behavior of your application.
@@ -61,12 +72,23 @@ impl Application for YourApp {
     /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<app::Message<Self::Message>>) {
-        let example = YourApp { core };
+    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+        let example = YourApp {
+            core,
+            current_image: 0,
+            image_list: vec![
+                Handle::from_memory(&include_bytes!(
+                    "/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg",
+                )),
+                Handle::from_memory(&include_bytes!("/home/mrkomododragon/Pictures/KOMODO.jpg")),
+                Handle::from_memory(&include_bytes!(
+                    "/home/mrkomododragon/Downloads/ferrisHeart.svg"
+                )),
+            ],
+        };
 
         (example, Command::none())
     }
-
     /// This is the main view of your application, it is the root of your widget tree.
     ///
     /// The `Element` type is used to represent the visual elements of your application,
@@ -74,11 +96,50 @@ impl Application for YourApp {
     ///
     /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        widget::container(widget::text::title1(fl!("welcome")))
+        println!("Render update");
+        let image = Image::new(self.image_list[self.current_image].clone())
             .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
-            .into()
+            .height(Length::Fill);
+        let previous = widget::button("Previous").on_press(Message::Previous);
+        let next = widget::button("Next").on_press(Message::Next);
+        let row = widget::row()
+            .push_maybe(self.can_go_back().then(|| previous))
+            .push_maybe(self.can_go_forward().then(|| next));
+        widget::column::with_children(vec![image.into(), row.into()]).into()
+    }
+
+    fn update(&mut self, message: Self::Message) -> app::Command<Self::Message> {
+        match message {
+            Message::Previous => {
+                let now = Instant::now();
+                println!("Got next message");
+                self.current_image -= 1;
+                let elapsed: u128 = (Instant::now() - now).as_millis();
+                println!("Increased the number after {} secs", elapsed);
+            }
+            Message::Next => {
+                let now = Instant::now();
+                println!("Got previous message");
+                self.current_image += 1;
+                let elapsed: u128 = (Instant::now() - now).as_millis();
+                println!("Increased the number after {} secs", elapsed);
+            }
+        }
+        Command::none()
+    }
+}
+
+impl YourApp {
+    fn can_go_back(&self) -> bool {
+        if self.current_image == 0 {
+            return false;
+        }
+        true
+    }
+    fn can_go_forward(&self) -> bool {
+        if self.current_image == (self.image_list.len() - 1) {
+            return false;
+        }
+        true
     }
 }
