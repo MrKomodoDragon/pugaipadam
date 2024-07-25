@@ -76,8 +76,9 @@ impl Application for Pugaipadam {
         let example = Pugaipadam {
             core,
             current_image: 0,
-            image_list: vec![Handle::from_memory(&include_bytes!(
-                "/home/aaronh/signal-2024-07-15-105314_003.jpeg"
+const IMAGE_PATH: &str = "/home/aaronh/signal-2024-07-15-105314_003.jpeg";
+
+image_list: vec![Handle::from_memory(&include_bytes!(IMAGE_PATH))]
             ))],
         };
 
