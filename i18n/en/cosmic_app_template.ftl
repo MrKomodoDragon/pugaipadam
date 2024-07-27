@@ -1,2 +1,3 @@
-app-title = COSMIC App Template
-welcome = Welcome to COSMIC! ✨
+app-title = Pugaipadam
+previous = Previous
+next = Previous
