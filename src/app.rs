@@ -18,7 +18,7 @@ use std::time::{Duration, Instant};
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
 #[derive(Clone, Default)]
-pub struct YourApp {
+pub struct Pugaipadam {
     /// This is the core of your application, it is used to communicate with the Cosmic runtime.
     /// It is used to send messages to your application, and to access the resources of the Cosmic runtime.
     core: Core,
@@ -43,7 +43,7 @@ pub enum Message {
 /// - `Flags` is the data that your application needs to use before it starts.
 /// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
 /// - `APP_ID` is the unique identifier of your application.
-impl Application for YourApp {
+impl Application for Pugaipadam {
     type Executor = cosmic::executor::Default;
 
     type Flags = ();
@@ -73,18 +73,13 @@ impl Application for YourApp {
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        let example = YourApp {
+        let example = Pugaipadam {
             core,
             current_image: 0,
-            image_list: vec![
-                Handle::from_memory(&include_bytes!(
-                    "/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg",
-                )),
-                Handle::from_memory(&include_bytes!("/home/mrkomododragon/Pictures/KOMODO.jpg")),
-                Handle::from_memory(&include_bytes!(
-                    "/home/mrkomododragon/Downloads/ferrisHeart.svg"
-                )),
-            ],
+const IMAGE_PATH: &str = "/home/aaronh/signal-2024-07-15-105314_003.jpeg";
+
+image_list: vec![Handle::from_memory(&include_bytes!(IMAGE_PATH))]
+            ))],
         };
 
         (example, Command::none())
@@ -129,7 +124,7 @@ impl Application for YourApp {
     }
 }
 
-impl YourApp {
+impl Pugaipadam {
     fn can_go_back(&self) -> bool {
         if self.current_image == 0 {
             return false;

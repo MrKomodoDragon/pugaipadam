@@ -1,4 +1,4 @@
-use app::YourApp;
+use app::Pugaipadam;
 /// The `app` module is used by convention to indicate the main component of our application.
 mod app;
 mod core;
@@ -10,5 +10,5 @@ mod core;
 ///  If your app does not need any flags, you can pass in `()`.
 fn main() -> cosmic::iced::Result {
     let settings = cosmic::app::Settings::default();
-    cosmic::app::run::<YourApp>(settings, ())
+    cosmic::app::run::<Pugaipadam>(settings, ())
 }
