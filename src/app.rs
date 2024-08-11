@@ -1,7 +1,7 @@
 use crate::fl;
 use cosmic::iced::advanced::image::Handle;
 use cosmic::prelude::CollectionWidget;
-use cosmic::widget::image::Image;
+use cosmic::widget::image::{Image, Viewer};
 use cosmic::{
     app::{self, Command, Core},
     iced::{
@@ -12,7 +12,7 @@ use cosmic::{
     widget::column,
     Application, Apply, Element,
 };
-use image::ImageReader;
+use image::{GenericImageView, ImageReader};
 use std::fs::read;
 use std::mem::take;
 use std::time::{Duration, Instant};
@@ -83,13 +83,14 @@ impl Application for Pugaipadam {
             .unwrap()
             .decode()
             .unwrap();
-        println!("{:#?}", im2.clone().into_bytes());
+        let im1_pixels: Vec<u8> = im1.to_rgba8().to_vec();
+        let im2_pixels = im2.to_rgba8().to_vec();
         let example = Pugaipadam {
             core,
             current_image: 0,
             image_list: vec![
-                Handle::from_pixels(im1.width(), im1.height(), im1.into_bytes()),
-                Handle::from_pixels(im2.width(), im2.height(), im2.into_bytes()),
+                Handle::from_pixels(im1.width(), im1.height(), im1_pixels),
+                Handle::from_pixels(im2.width(), im2.height(), im2_pixels),
             ],
         };
 
@@ -103,7 +104,7 @@ impl Application for Pugaipadam {
     /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
         println!("Render update");
-        let image = Image::new(self.image_list[self.current_image].clone())
+        let image = Viewer::new(self.image_list[self.current_image].clone())
             .width(Length::Fill)
             .height(Length::Fill);
         let previous = widget::button("Previous").on_press(Message::Previous);
