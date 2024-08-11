@@ -12,6 +12,7 @@ use cosmic::{
     widget::column,
     Application, Apply, Element,
 };
+use image::ImageReader;
 use std::fs::read;
 use std::mem::take;
 use std::time::{Duration, Instant};
@@ -73,13 +74,23 @@ impl Application for Pugaipadam {
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+        let im1 =
+            ImageReader::open("/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg")
+                .unwrap()
+                .decode()
+                .unwrap();
+        let im2 = ImageReader::open("/home/mrkomododragon/Pictures/KOMODO.jpg")
+            .unwrap()
+            .decode()
+            .unwrap();
+        println!("{:#?}", im2.clone().into_bytes());
         let example = Pugaipadam {
             core,
             current_image: 0,
-const IMAGE_PATH: &str = "/home/aaronh/signal-2024-07-15-105314_003.jpeg";
-
-image_list: vec![Handle::from_memory(&include_bytes!(IMAGE_PATH))]
-            ))],
+            image_list: vec![
+                Handle::from_pixels(im1.width(), im1.height(), im1.into_bytes()),
+                Handle::from_pixels(im2.width(), im2.height(), im2.into_bytes()),
+            ],
         };
 
         (example, Command::none())
