@@ -15,7 +15,32 @@ use cosmic::{
 use image::{GenericImageView, ImageReader};
 use std::fs::read;
 use std::mem::take;
-use std::time::{Duration, Instant};
+use std::path::PathBuf;
+use std::time::Instant;
+
+#[derive(Clone, Debug)]
+struct ImageRepresentation {
+    height: u32,
+    width: u32,
+    pixels_handle: Handle,
+    path: PathBuf,
+    name: String,
+}
+
+impl ImageRepresentation {
+    fn from_path(path: PathBuf) -> Self {
+        let im = ImageReader::open(path.clone()).unwrap().decode().unwrap();
+        let pixels = im.to_rgba8().to_vec();
+        Self {
+            height: im.height(),
+            width: im.width(),
+            pixels_handle: Handle::from_pixels(im.width(), im.height(), pixels),
+            path: path.clone(),
+            name: path.file_name().unwrap().to_str().unwrap().to_string(),
+        }
+    }
+}
+
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
 #[derive(Clone, Default)]
@@ -24,7 +49,7 @@ pub struct Pugaipadam {
     /// It is used to send messages to your application, and to access the resources of the Cosmic runtime.
     core: Core,
     current_image: usize,
-    image_list: Vec<Handle>,
+    image_list: Vec<ImageRepresentation>,
 }
 
 /// This is the enum that contains all the possible variants that your application will need to transmit messages.
@@ -74,26 +99,20 @@ impl Application for Pugaipadam {
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        let im1 =
-            ImageReader::open("/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg")
-                .unwrap()
-                .decode()
-                .unwrap();
-        let im2 = ImageReader::open("/home/mrkomododragon/Pictures/KOMODO.jpg")
-            .unwrap()
-            .decode()
-            .unwrap();
-        let im1_pixels: Vec<u8> = im1.to_rgba8().to_vec();
-        let im2_pixels = im2.to_rgba8().to_vec();
+        let mut vector: Vec<ImageRepresentation> = Vec::new();
+        //
+        //
+        vector.push(ImageRepresentation::from_path(PathBuf::from(
+            "/home/mrkomododragon/Pictures/KOMODO.jpg",
+        )));
+        vector.push(ImageRepresentation::from_path(PathBuf::from(
+            "/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg",
+        )));
         let example = Pugaipadam {
             core,
             current_image: 0,
-            image_list: vec![
-                Handle::from_pixels(im1.width(), im1.height(), im1_pixels),
-                Handle::from_pixels(im2.width(), im2.height(), im2_pixels),
-            ],
+            image_list: vector,
         };
-
         (example, Command::none())
     }
     /// This is the main view of your application, it is the root of your widget tree.
@@ -101,10 +120,9 @@ impl Application for Pugaipadam {
     /// The `Element` type is used to represent the visual elements of your application,
     /// it has a `Message` associated with it, which dictates what type of message it can send.
     ///
-    /// To get a better sense of which widgets are available, check out the `widget` module.
+    /// To get a better sense of whi.ch widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        println!("Render update");
-        let image = Viewer::new(self.image_list[self.current_image].clone())
+        let image = Viewer::new(self.image_list[self.current_image].pixels_handle.clone())
             .width(Length::Fill)
             .height(Length::Fill);
         let previous = widget::button("Previous").on_press(Message::Previous);
@@ -118,18 +136,10 @@ impl Application for Pugaipadam {
     fn update(&mut self, message: Self::Message) -> app::Command<Self::Message> {
         match message {
             Message::Previous => {
-                let now = Instant::now();
-                println!("Got next message");
                 self.current_image -= 1;
-                let elapsed: u128 = (Instant::now() - now).as_millis();
-                println!("Increased the number after {} secs", elapsed);
             }
             Message::Next => {
-                let now = Instant::now();
-                println!("Got previous message");
                 self.current_image += 1;
-                let elapsed: u128 = (Instant::now() - now).as_millis();
-                println!("Increased the number after {} secs", elapsed);
             }
         }
         Command::none()
