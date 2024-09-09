@@ -1,22 +1,15 @@
 use crate::fl;
 use cosmic::iced::advanced::image::Handle;
 use cosmic::prelude::CollectionWidget;
-use cosmic::widget::image::{Image, Viewer};
+use cosmic::widget::image::Viewer;
 use cosmic::{
     app::{self, Command, Core},
-    iced::{
-        alignment::{Horizontal, Vertical},
-        Length,
-    },
+    iced::Length,
     widget,
-    widget::column,
-    Application, Apply, Element,
+    Application, Element,
 };
 use image::{GenericImageView, ImageReader};
-use std::fs::read;
-use std::mem::take;
 use std::path::PathBuf;
-use std::time::Instant;
 
 #[derive(Clone, Debug)]
 struct ImageRepresentation {
