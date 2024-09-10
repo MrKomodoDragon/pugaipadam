@@ -1,12 +1,14 @@
 use crate::fl;
 use cosmic::iced::advanced::image::Handle;
+use cosmic::iced::Alignment;
 use cosmic::prelude::CollectionWidget;
 use cosmic::widget::image::Viewer;
+use cosmic::widget::{horizontal_space, Space};
+use cosmic::ApplicationExt;
 use cosmic::{
     app::{self, Command, Core},
     iced::Length,
-    widget,
-    Application, Element,
+    widget, Application, Element,
 };
 use image::{GenericImageView, ImageReader};
 use std::path::PathBuf;
@@ -22,14 +24,15 @@ struct ImageRepresentation {
 
 impl ImageRepresentation {
     fn from_path(path: PathBuf) -> Self {
-        let im = ImageReader::open(path.clone()).unwrap().decode().unwrap();
-        let pixels = im.to_rgba8().to_vec();
+        let im = ImageReader::open(&path).unwrap().decode().unwrap();
+        let height = im.height();
+        let width = im.width();
         Self {
-            height: im.height(),
-            width: im.width(),
-            pixels_handle: Handle::from_pixels(im.width(), im.height(), pixels),
-            path: path.clone(),
-            name: path.file_name().unwrap().to_str().unwrap().to_string(),
+            height,
+            width,
+            pixels_handle: Handle::from_pixels(width, height, im.into_rgba8().into_vec()),
+            name: (&path).file_name().unwrap().to_str().unwrap().to_string(),
+            path: path,
         }
     }
 }
@@ -81,7 +84,7 @@ impl Application for Pugaipadam {
 
     /// This is the header of your application, it can be used to display the title of your application.
     fn header_center(&self) -> Vec<Element<Self::Message>> {
-        vec![widget::text::text(fl!("app-title")).into()]
+        vec![widget::text::text(self.title()).into()]
     }
 
     /// This is the entry point of your application, it is where you initialize your application.
@@ -101,12 +104,13 @@ impl Application for Pugaipadam {
         vector.push(ImageRepresentation::from_path(PathBuf::from(
             "/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg",
         )));
-        let example = Pugaipadam {
+        let mut app = Pugaipadam {
             core,
             current_image: 0,
             image_list: vector,
         };
-        (example, Command::none())
+        let command = app.update_title();
+        (app, command)
     }
     /// This is the main view of your application, it is the root of your widget tree.
     ///
@@ -115,14 +119,21 @@ impl Application for Pugaipadam {
     ///
     /// To get a better sense of whi.ch widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        let image = Viewer::new(self.image_list[self.current_image].pixels_handle.clone())
+        let current_image = self.image_list[self.current_image].clone();
+        let image = Viewer::new(current_image.pixels_handle)
             .width(Length::Fill)
             .height(Length::Fill);
         let previous = widget::button("Previous").on_press(Message::Previous);
         let next = widget::button("Next").on_press(Message::Next);
+        let dimensions = format!("{}x{} pixels", current_image.width, current_image.height);
+        let details = widget::container(widget::text(dimensions))
+            .align_x(cosmic::iced::alignment::Horizontal::Right);
         let row = widget::row()
             .push_maybe(self.can_go_back().then(|| previous))
-            .push_maybe(self.can_go_forward().then(|| next));
+            .push_maybe(self.can_go_forward().then(|| next))
+            .push(horizontal_space(Length::Fill))
+            .push(details)
+            .align_items(Alignment::Center);
         widget::column::with_children(vec![image.into(), row.into()]).into()
     }
 
@@ -135,7 +146,7 @@ impl Application for Pugaipadam {
                 self.current_image += 1;
             }
         }
-        Command::none()
+        self.update_title()
     }
 }
 
@@ -151,5 +162,12 @@ impl Pugaipadam {
             return false;
         }
         true
+    }
+    fn update_title(&mut self) -> Command<Message> {
+        let mut title = fl!("app-title");
+        let file_name = &self.image_list[self.current_image].name;
+        title.push_str(" - ");
+        title.push_str(file_name.as_str());
+        self.set_window_title(title)
     }
 }
