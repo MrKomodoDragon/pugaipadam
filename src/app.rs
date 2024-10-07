@@ -102,7 +102,7 @@ impl Application for Pugaipadam {
             "/home/mrkomododragon/Pictures/KOMODO.jpg",
         )));
         vector.push(ImageRepresentation::from_path(PathBuf::from(
-            "/home/mrkomododragon/Pictures/tarantula_nebula_nasa_PIA23646.jpg",
+            "/home/mrkomododragon/Pictures/beeg.jpg",
         )));
         let mut app = Pugaipadam {
             core,
@@ -123,9 +123,14 @@ impl Application for Pugaipadam {
         let image = Viewer::new(current_image.pixels_handle)
             .width(Length::Fill)
             .height(Length::Fill);
-        let previous = widget::button("Previous").on_press(Message::Previous);
-        let next = widget::button("Next").on_press(Message::Next);
-        let dimensions = format!("{}x{} pixels", current_image.width, current_image.height);
+        let previous = widget::button::text("Previous").on_press(Message::Previous);
+        let next = widget::button::text("Next").on_press(Message::Next);
+        let dimensions = format!(
+            "{} - {}x{} pixels",
+            current_image.path.display(),
+            current_image.width,
+            current_image.height
+        );
         let details = widget::container(widget::text(dimensions))
             .align_x(cosmic::iced::alignment::Horizontal::Right);
         let row = widget::row()
