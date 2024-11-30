@@ -6,12 +6,13 @@ use cosmic::widget::image::Viewer;
 use cosmic::widget::{horizontal_space, Space};
 use cosmic::ApplicationExt;
 use cosmic::{
-    app::{self, Command, Core},
+    app::{self, Core, Task},
     iced::Length,
     widget, Application, Element,
 };
 use image::{GenericImageView, ImageReader};
-use std::path::PathBuf;
+use std::fs::{self, DirEntry};
+use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug)]
 struct ImageRepresentation {
@@ -24,13 +25,14 @@ struct ImageRepresentation {
 
 impl ImageRepresentation {
     fn from_path(path: PathBuf) -> Self {
+        println!("{}", path.display());
         let im = ImageReader::open(&path).unwrap().decode().unwrap();
         let height = im.height();
         let width = im.width();
         Self {
             height,
             width,
-            pixels_handle: Handle::from_pixels(width, height, im.into_rgba8().into_vec()),
+            pixels_handle: Handle::from_rgba(width, height, im.into_rgba8().into_vec()),
             name: (&path).file_name().unwrap().to_str().unwrap().to_string(),
             path: path,
         }
@@ -68,7 +70,7 @@ pub enum Message {
 impl Application for Pugaipadam {
     type Executor = cosmic::executor::Default;
 
-    type Flags = ();
+    type Flags = Vec<PathBuf>;
 
     type Message = Message;
 
@@ -94,16 +96,12 @@ impl Application for Pugaipadam {
     /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
     /// - `flags` is used to pass in any data that your application needs to use before it starts.
     /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+    fn init(core: Core, flags: Self::Flags) -> (Self, Task<Self::Message>) {
         let mut vector: Vec<ImageRepresentation> = Vec::new();
-        //
-        //
-        vector.push(ImageRepresentation::from_path(PathBuf::from(
-            "/home/mrkomododragon/Pictures/KOMODO.jpg",
-        )));
-        vector.push(ImageRepresentation::from_path(PathBuf::from(
-            "/home/mrkomododragon/Pictures/beeg.jpg",
-        )));
+        for i in flags {
+            vector.push(ImageRepresentation::from_path(i));
+        }
+        println!("{:#?}", vector.len());
         let mut app = Pugaipadam {
             core,
             current_image: 0,
@@ -136,13 +134,13 @@ impl Application for Pugaipadam {
         let row = widget::row()
             .push_maybe(self.can_go_back().then(|| previous))
             .push_maybe(self.can_go_forward().then(|| next))
-            .push(horizontal_space(Length::Fill))
+            .push(horizontal_space())
             .push(details)
-            .align_items(Alignment::Center);
+            .align_y(Alignment::Center);
         widget::column::with_children(vec![image.into(), row.into()]).into()
     }
 
-    fn update(&mut self, message: Self::Message) -> app::Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> app::Task<Self::Message> {
         match message {
             Message::Previous => {
                 self.current_image -= 1;
@@ -168,7 +166,7 @@ impl Pugaipadam {
         }
         true
     }
-    fn update_title(&mut self) -> Command<Message> {
+    fn update_title(&mut self) -> Task<Message> {
         let mut title = fl!("app-title");
         let file_name = &self.image_list[self.current_image].name;
         title.push_str(" - ");
