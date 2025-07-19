@@ -57,6 +57,7 @@ pub struct Pugaipadam {
 pub enum Message {
     Next,
     Previous,
+    Fullscreen,
 }
 
 /// Implement the `Application` trait for your application.
@@ -123,6 +124,7 @@ impl Application for Pugaipadam {
             .height(Length::Fill);
         let previous = widget::button::text("Previous").on_press(Message::Previous);
         let next = widget::button::text("Next").on_press(Message::Next);
+        let fullscreen = widget::button::custom(widget::icon::from_name("view-fullscreen-symbolic").size(16)).on_press(Message::Fullscreen);
         let dimensions = format!(
             "{} - {}x{} pixels",
             current_image.path.display(),
@@ -135,6 +137,7 @@ impl Application for Pugaipadam {
             .push_maybe(self.can_go_back().then(|| previous))
             .push_maybe(self.can_go_forward().then(|| next))
             .push(horizontal_space())
+            .push(fullscreen)
             .push(details)
             .align_y(Alignment::Center);
         widget::column::with_children(vec![image.into(), row.into()]).into()
@@ -143,11 +146,22 @@ impl Application for Pugaipadam {
     fn update(&mut self, message: Self::Message) -> app::Task<Self::Message> {
         match message {
             Message::Previous => {
-                self.current_image -= 1;
+                if self.current_image ==  0 {
+                    self.current_image = self.image_list.len() - 1;
+                } else {
+                    self.current_image -= 1;
+                }
             }
             Message::Next => {
-                self.current_image += 1;
+                if self.current_image + 1 == self.image_list.len() {
+                    self.current_image = 0;
+                } else {
+                    self.current_image += 1;
+                }
             }
+            Message::Fullscreen => {
+                println!("Fullscreen button pressed");
+                }
         }
         self.update_title()
     }
@@ -155,22 +169,23 @@ impl Application for Pugaipadam {
 
 impl Pugaipadam {
     fn can_go_back(&self) -> bool {
-        if self.current_image == 0 {
+        if (self.image_list.len() == 0) {
             return false;
         }
         true
     }
     fn can_go_forward(&self) -> bool {
-        if self.current_image == (self.image_list.len() - 1) {
+        if (self.image_list.len() == 1) {
             return false;
         }
         true
     }
     fn update_title(&mut self) -> Task<Message> {
-        let mut title = fl!("app-title");
+        let mut title = String::new();
         let file_name = &self.image_list[self.current_image].name;
-        title.push_str(" - ");
         title.push_str(file_name.as_str());
+        title.push_str(format!(" ({}/{})", self.current_image +1, self.image_list.len()).as_str());
+        println!("{}", title);
         self.set_window_title(title)
     }
 }
