@@ -7,7 +7,7 @@ use cosmic::widget::{horizontal_space, Space};
 use cosmic::ApplicationExt;
 use cosmic::{
     app::{self, Core, Task},
-    iced::{window, Length, Padding},
+    iced::{keyboard, window, Length, Padding, Subscription},
     widget, Application, Element,
 };
 use image::{GenericImageView, ImageReader};
@@ -127,6 +127,16 @@ impl Application for Pugaipadam {
     ///
     /// To get a better sense of whi.ch widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
+        if self.image_list.is_empty() {
+            return widget::container(
+                widget::text("No images to display. Please provide image files as arguments.")
+                    .size(20)
+            )
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into();
+        }
+
         let current_image = self.image_list[self.current_image].clone();
         let image = Viewer::new(current_image.pixels_handle)
             .width(Length::Fill)
@@ -187,6 +197,16 @@ impl Application for Pugaipadam {
         }
         self.update_title()
     }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        keyboard::on_key_press(|key, _modifiers| {
+            match key {
+                keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => Some(Message::Previous),
+                keyboard::Key::Named(keyboard::key::Named::ArrowRight) => Some(Message::Next),
+                _ => None,
+            }
+        })
+    }
 }
 
 impl Pugaipadam {
@@ -204,9 +224,13 @@ impl Pugaipadam {
     }
     fn update_title(&mut self) -> Task<Message> {
         let mut title = String::new();
-        let file_name = &self.image_list[self.current_image].name;
-        title.push_str(file_name.as_str());
-        title.push_str(format!(" ({}/{})", self.current_image + 1, self.image_list.len()).as_str());
+        if self.image_list.is_empty() {
+            title.push_str("Pugaipadam - No images");
+        } else {
+            let file_name = &self.image_list[self.current_image].name;
+            title.push_str(file_name.as_str());
+            title.push_str(format!(" ({}/{})", self.current_image + 1, self.image_list.len()).as_str());
+        }
         println!("{}", title);
         self.set_window_title(title)
     }
