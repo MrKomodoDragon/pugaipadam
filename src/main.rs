@@ -43,7 +43,7 @@ fn main() -> cosmic::iced::Result {
             paths.extend(entries);
         } else if i.is_file() {
             if i.extension()
-                .map_or(false, |ext| ImageFormat::from_extension(ext).is_some())
+                .map_or(false, |ext| ImageFormat::from_extension(ext).is_some() || ext == "svg")
             {
                 paths.push(i);
             } else {

@@ -1,9 +1,11 @@
 use crate::fl;
 use cosmic::iced::advanced::image::Handle;
+use cosmic::iced::advanced::svg::Handle as SvgHandle;
 use cosmic::iced::Alignment;
+use cosmic::iced_core::SmolStr;
 use cosmic::prelude::CollectionWidget;
 use cosmic::widget::image::Viewer;
-use cosmic::widget::{horizontal_space, Space};
+use cosmic::widget::{horizontal_space, Space, Svg};
 use cosmic::ApplicationExt;
 use cosmic::{
     app::{self, Core, Task},
@@ -11,17 +13,21 @@ use cosmic::{
     widget, Application, Element,
 };
 
-use cosmic::iced_core::SmolStr;
-
 use image::{GenericImageView, ImageReader};
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug)]
+enum HandleType {
+    Regular(Handle),
+    Svg(SvgHandle),
+}
+
+#[derive(Clone, Debug)]
 struct ImageRepresentation {
     height: u32,
     width: u32,
-    pixels_handle: Handle,
+    pixels_handle: HandleType,
     path: PathBuf,
     name: String,
 }
@@ -40,10 +46,22 @@ impl ImageRepresentation {
         };
         let height = im.height();
         let width = im.width();
+        let im_bytes = im.into_rgba8().into_vec();
+        let handle = match path
+            .extension()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_lowercase()
+            .as_str()
+        {
+            "svg" => HandleType::Svg(SvgHandle::from_memory(im_bytes)),
+            _ => HandleType::Regular(Handle::from_rgba(width, height, im_bytes)),
+        };
         Ok(Self {
             height,
             width,
-            pixels_handle: Handle::from_rgba(width, height, im.into_rgba8().into_vec()),
+            pixels_handle: handle,
             name: (&path).file_name().unwrap().to_str().unwrap().to_string(),
             path: path,
         })
@@ -106,7 +124,8 @@ impl Application for Pugaipadam {
 
     /// This is the header of your application, it can be used to display the title of your application.
     fn header_center(&self) -> Vec<Element<Self::Message>> {
-        vec![widget::text::text(self.title()).into()]
+        let id = self.core.main_window_id().unwrap();
+        vec![widget::text::text(self.title(id)).into()]
     }
 
     /// This is the entry point of your application, it is where you initialize your application.
@@ -161,9 +180,6 @@ impl Application for Pugaipadam {
         }
 
         let current_image = self.image_list[self.current_image].clone();
-        let image = Viewer::new(current_image.pixels_handle)
-            .width(Length::Fill)
-            .height(Length::Fill);
         let previous = widget::button::text("Previous").on_press(Message::Previous);
         let next = widget::button::text("Next").on_press(Message::Next);
         let fullscreen =
@@ -184,10 +200,28 @@ impl Application for Pugaipadam {
             .push(horizontal_space())
             .push(details)
             .align_y(Alignment::Center);
-        if !self.fullscreen {
-            return widget::column::with_children(vec![image.into(), row.into()]).into();
+
+        if let HandleType::Svg(handle) = current_image.pixels_handle {
+            let image = Svg::new(handle).width(Length::Fill).height(Length::Fill);
+            if !self.fullscreen {
+                return widget::column::with_children(vec![image.into(), row.into()]).into();
+            } else {
+                return image.into();
+            }
         } else {
-            return image.into();
+            if let HandleType::Regular(handle) = current_image.pixels_handle {
+                let image = Viewer::new(handle).width(Length::Fill).height(Length::Fill);
+                if !self.fullscreen {
+                    return widget::column::with_children(vec![image.into(), row.into()]).into();
+                } else {
+                    return image.into();
+                }
+            } else {
+                return widget::container(widget::text("Some funny aah thing occurred").size(20))
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fill)
+                    .into();
+            }
         }
     }
 
@@ -262,7 +296,8 @@ impl Pugaipadam {
             );
         }
         println!("{}", title);
-        self.set_window_title(title)
+        let id = self.core.main_window_id().unwrap();
+        self.set_window_title(title, id)
     }
     fn change_fullscreen(&mut self, id: window::Id) -> Task<Message> {
         window::change_mode(
