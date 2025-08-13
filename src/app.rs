@@ -10,6 +10,9 @@ use cosmic::{
     iced::{keyboard, window, Length, Padding, Subscription},
     widget, Application, Element,
 };
+
+use cosmic::iced_core::SmolStr;
+
 use image::{GenericImageView, ImageReader};
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
@@ -24,18 +27,26 @@ struct ImageRepresentation {
 }
 
 impl ImageRepresentation {
-    fn from_path(path: PathBuf) -> Self {
+    fn from_path(path: PathBuf) -> Result<Self, &'static str> {
         println!("{}", path.display());
-        let im = ImageReader::open(&path).unwrap().decode().unwrap();
+        let reader = ImageReader::open(&path);
+        let decoded = match reader {
+            Ok(i) => i.decode(),
+            Err(i) => return Err("Image could not be opened"),
+        };
+        let im = match decoded {
+            Ok(i) => i,
+            Err(_) => return Err("Image could not be decoded"),
+        };
         let height = im.height();
         let width = im.width();
-        Self {
+        Ok(Self {
             height,
             width,
             pixels_handle: Handle::from_rgba(width, height, im.into_rgba8().into_vec()),
             name: (&path).file_name().unwrap().to_str().unwrap().to_string(),
             path: path,
-        }
+        })
     }
 }
 
@@ -108,7 +119,19 @@ impl Application for Pugaipadam {
     fn init(core: Core, flags: Self::Flags) -> (Self, Task<Self::Message>) {
         let mut vector: Vec<ImageRepresentation> = Vec::new();
         for i in flags {
-            vector.push(ImageRepresentation::from_path(i));
+            let ir = ImageRepresentation::from_path(i.clone());
+            match ir {
+                Ok(image) => {
+                    vector.push(image);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "Image {} was unable to be opened due to error {}",
+                        &i.display(),
+                        error
+                    );
+                }
+            }
         }
         println!("{:#?}", vector.len());
         let mut app = Pugaipadam {
@@ -130,7 +153,7 @@ impl Application for Pugaipadam {
         if self.image_list.is_empty() {
             return widget::container(
                 widget::text("No images to display. Please provide image files as arguments.")
-                    .size(20)
+                    .size(20),
             )
             .center_x(Length::Fill)
             .center_y(Length::Fill)
@@ -199,12 +222,17 @@ impl Application for Pugaipadam {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        keyboard::on_key_press(|key, _modifiers| {
-            match key {
-                keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => Some(Message::Previous),
-                keyboard::Key::Named(keyboard::key::Named::ArrowRight) => Some(Message::Next),
-                _ => None,
+        keyboard::on_key_press(|key, _modifiers| match key {
+            keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => Some(Message::Previous),
+            keyboard::Key::Named(keyboard::key::Named::ArrowRight) => Some(Message::Next),
+            keyboard::Key::Character(f) => {
+                if (f.as_str() == "f") {
+                    Some(Message::Fullscreen)
+                } else {
+                    None
+                }
             }
+            _ => None,
         })
     }
 }
@@ -225,11 +253,13 @@ impl Pugaipadam {
     fn update_title(&mut self) -> Task<Message> {
         let mut title = String::new();
         if self.image_list.is_empty() {
-            title.push_str("Pugaipadam - No images");
+            title.push_str("No images");
         } else {
             let file_name = &self.image_list[self.current_image].name;
             title.push_str(file_name.as_str());
-            title.push_str(format!(" ({}/{})", self.current_image + 1, self.image_list.len()).as_str());
+            title.push_str(
+                format!(" ({}/{})", self.current_image + 1, self.image_list.len()).as_str(),
+            );
         }
         println!("{}", title);
         self.set_window_title(title)

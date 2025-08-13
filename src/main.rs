@@ -2,6 +2,7 @@ use app::Pugaipadam;
 /// The `app` module is used by convention to indicate the main component of our application.
 mod app;
 mod core;
+use image::ImageFormat;
 use std::path::PathBuf;
 use std::{env, fs};
 /// The `cosmic::app::run()` function is the starting point of your application.
@@ -31,7 +32,7 @@ fn main() -> cosmic::iced::Result {
                 .filter_map(|path| {
                     if path
                         .extension()
-                        .map_or(false, |ext| ext == "png" || ext == "jpg")
+                        .map_or(false, |ext| ImageFormat::from_extension(ext).is_some())
                     {
                         Some(path)
                     } else {
@@ -42,7 +43,7 @@ fn main() -> cosmic::iced::Result {
             paths.extend(entries);
         } else if i.is_file() {
             if i.extension()
-                .map_or(false, |ext| ext == "png" || ext == "jpg")
+                .map_or(false, |ext| ImageFormat::from_extension(ext).is_some())
             {
                 paths.push(i);
             } else {
