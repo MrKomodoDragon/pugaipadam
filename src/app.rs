@@ -1,21 +1,18 @@
-use crate::fl;
 use cosmic::iced::advanced::image::Handle;
 use cosmic::iced::advanced::svg::Handle as SvgHandle;
 use cosmic::iced::Alignment;
-use cosmic::iced_core::SmolStr;
 use cosmic::prelude::CollectionWidget;
 use cosmic::widget::image::Viewer;
-use cosmic::widget::{horizontal_space, Space, Svg};
+use cosmic::widget::{horizontal_space, Svg};
 use cosmic::ApplicationExt;
 use cosmic::{
     app::{self, Core, Task},
-    iced::{keyboard, window, Length, Padding, Subscription},
+    iced::{keyboard, window, Length, Subscription},
     widget, Application, Element,
 };
 
 use image::{GenericImageView, ImageReader};
-use std::fs::{self, DirEntry};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 enum HandleType {
@@ -260,7 +257,7 @@ impl Application for Pugaipadam {
             keyboard::Key::Named(keyboard::key::Named::ArrowLeft) => Some(Message::Previous),
             keyboard::Key::Named(keyboard::key::Named::ArrowRight) => Some(Message::Next),
             keyboard::Key::Character(f) => {
-                if (f.as_str() == "f") {
+                if f.as_str() == "f" {
                     Some(Message::Fullscreen)
                 } else {
                     None
