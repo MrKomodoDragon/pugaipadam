@@ -12,6 +12,8 @@ use cosmic::{
 };
 
 use image::{GenericImageView, ImageReader};
+use std::fs::{self, File};
+use std::io::{read_to_string, Cursor};
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
@@ -30,31 +32,34 @@ struct ImageRepresentation {
 }
 
 impl ImageRepresentation {
-    fn from_path(path: PathBuf) -> Result<Self, &'static str> {
+    fn from_path(path: PathBuf) -> Result<Self, String> {
         println!("{}", path.display());
-        let reader = ImageReader::open(&path);
-        let decoded = match reader {
-            Ok(i) => i.decode(),
-            Err(i) => return Err("Image could not be opened"),
+        let is_svg = path.extension().unwrap().to_ascii_lowercase() == "svg";
+        let bytes = fs::read(&path);
+        let bytes = match bytes {
+            Ok(i) => i,
+            Err(i) => return Err(format!("{:#?}", i)),
         };
+        if is_svg {
+            let handle = HandleType::Svg(SvgHandle::from_memory(bytes.clone()));
+            return Ok(Self {
+                height: 0,
+                width: 0,
+                pixels_handle: handle,
+                name: (&path).file_name().unwrap().to_str().unwrap().to_string(),
+                path: path,
+            });
+        }
+        let reader = ImageReader::new(Cursor::new(bytes));
+        let decoded = reader.decode();
         let im = match decoded {
             Ok(i) => i,
-            Err(_) => return Err("Image could not be decoded"),
+            Err(i) => return Err(format!("{:#?}", i)),
         };
         let height = im.height();
         let width = im.width();
         let im_bytes = im.into_rgba8().into_vec();
-        let handle = match path
-            .extension()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_lowercase()
-            .as_str()
-        {
-            "svg" => HandleType::Svg(SvgHandle::from_memory(im_bytes)),
-            _ => HandleType::Regular(Handle::from_rgba(width, height, im_bytes)),
-        };
+        let handle = HandleType::Regular(Handle::from_rgba(width, height, im_bytes));
         Ok(Self {
             height,
             width,
